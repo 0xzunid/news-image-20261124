@@ -34,7 +34,7 @@ def sha256_of(path):
     return digest.hexdigest()
 
 
-def png_dimensions(path):
+def check_dimensions(path):
     """(width, height) read from the PNG IHDR chunk, or None if invalid."""
     with open(path, "rb") as handle:
         head = handle.read(33)
@@ -45,18 +45,22 @@ def png_dimensions(path):
     return struct.unpack(">II", head[16:24])
 
 
+def check_digest(path, want):
+    """True when the file at path hashes to the expected SHA-256."""
+    return sha256_of(path) == want
+
+
 def main():
     OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
     target = OUTPUT_DIR / "entry.png"
     shutil.copyfile(BUNDLED, target)
 
-    dims = png_dimensions(target)
+    dims = check_dimensions(target)
     if dims != WANT_DIMS:
         print(f"bad dimensions {dims}, expected {WANT_DIMS}", file=sys.stderr)
         return 1
 
-    placed = sha256_of(target)
-    if placed != sha256_of(BUNDLED) or placed != WANT_SHA256:
+    if not check_digest(target, WANT_SHA256) or not check_digest(BUNDLED, WANT_SHA256):
         print("placed copy digest does not match bundled image", file=sys.stderr)
         return 1
 
